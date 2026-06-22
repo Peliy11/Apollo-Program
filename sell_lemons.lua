@@ -170,7 +170,7 @@ end
 local Window = Luna:CreateWindow({
     Name = "Apollo Program", 
     Subtitle = "https://discord.gg/U8X5U24u34", 
-    LogoID = "82795327169782", 
+    LogoID = "71992521463355", 
     LoadingEnabled = true, 
     LoadingTitle = "Apollo Program Loading", 
     LoadingSubtitle = "by ChefaoBR", 
