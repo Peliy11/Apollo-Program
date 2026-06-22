@@ -1,20 +1,41 @@
 local Junkie = loadstring(game:HttpGet("https://jnkie.com/sdk/library.lua"))()
+
+-- Game scripts mapping table
+local GameScripts = {
+    [79268393072444] = "https://raw.githubusercontent.com/Peliy11/Apollo-Program/refs/heads/main/sell_lemons.lua"
+}
+
+-- Function to handle loading the game script or kicking if unsupported
+local function loadGameScript()
+    local placeId = game.PlaceId
+    local scriptUrl = GameScripts[placeId]
+    
+    if scriptUrl then
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(scriptUrl))()
+        end)
+        if not success then
+            warn("Failed to load game script: " .. tostring(err))
+        end
+    else
+        -- Kick the player if the game is not supported
+        local player = game:GetService("Players").LocalPlayer
+        if player then
+            player:Kick("Apollo Program: This game is not supported (PlaceId: " .. tostring(game.name) .. ").")
+        else
+            -- Fallback if LocalPlayer is not fully loaded yet
+            game:GetService("Players").PlayerAdded:Connect(function(plr)
+                if plr == game:GetService("Players").LocalPlayer then
+                    plr:Kick("Apollo Program: This game is not supported.")
+                end
+            end)
+        end
+    end
+end
+
 Junkie.service = "Apollo Service"
 Junkie.identifier = "1104877"
 Junkie.provider = "Apollo Program"
-
--- Map your Roblox Place IDs to your Raw GitHub code links
-local GamesDatabase = {
-    [79268393072444] = "https://raw.githubusercontent.com/Peliy11/Apollo-Program/refs/heads/main/sell_lemons.lua", -- Real Lemon Tycoon ID
-}
-
-local currentPlaceId = game.PlaceId
-
--- Halt early if game is unsupported before spinning up the UI process
-if not GamesDatabase[currentPlaceId] then
-    game:GetService("Players").LocalPlayer:Kick("Apollo Hub: This game is currently not supported.")
-    return
-end
 
 local result = (function()
     getgenv().UI_CLOSED = false
@@ -738,23 +759,844 @@ local result = (function()
                         }):Play()
                     end)
                 end
+                
+                if elements.keyInput and elements.inputStroke then
+                    elements.keyInput.Focused:Connect(function()
+                        TweenService:Create(elements.inputStroke, TweenInfo.new(0.2), {
+                            Color = Colors.primary,
+                            Thickness = 2,
+                            Transparency = 0
+                        }):Play()
+                    end)
+                    
+                    elements.keyInput.FocusLost:Connect(function()
+                        TweenService:Create(elements.inputStroke, TweenInfo.new(0.2), {
+                            Color = Colors.border,
+                            Thickness = 1,
+                            Transparency = 0.5
+                        }):Play()
+                    end)
+                end
             end
+            
+            local function animateEntrance()
+                local container = self.elements.container
+                local backdrop = self.elements.backdrop
+                
+                if container then
+                    container.BackgroundTransparency = 1
+                    TweenService:Create(container, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                        BackgroundTransparency = 0
+                    }):Play()
+                end
+                
+                if backdrop then
+                    backdrop.BackgroundTransparency = 1
+                    TweenService:Create(backdrop, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                        BackgroundTransparency = 0.4
+                    }):Play()
+                end
+            end
+            
+            self.gui.Parent = game:GetService("CoreGui")
+            
+            self.gui.AncestryChanged:Connect(function(_, parent)
+                if parent == nil then
+                    local blur = Lighting:FindFirstChild("JunkieUIBlur")
+                    if blur then blur:Destroy() end
+                end
+            end)
+            
+    
+            self.showSuccess = function(self, message)
+                if not self.elements then return end
+                
+                local container = self.elements.container
+                local loadingOverlay = container:FindFirstChild("LoadingOverlay")
+                
+                if loadingOverlay then
+                    local mainContainer = loadingOverlay:FindFirstChild("MainContainer")
+                    local spinnerContainer = mainContainer and mainContainer:FindFirstChild("SpinnerContainer")
+                    local loadingText = mainContainer and mainContainer:FindFirstChild("LoadingText")
+                    local hintText = mainContainer and mainContainer:FindFirstChild("HintText")
+                    
+                    if spinnerContainer then
+                        TweenService:Create(
+                            spinnerContainer,
+                            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {Rotation = 0}
+                        ):Play()
+                        
+                        for _, child in ipairs(spinnerContainer:GetChildren()) do
+                            if child:IsA("Frame") then
+                                TweenService:Create(
+                                    child,
+                                    TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                                    {BackgroundTransparency = 1}
+                                ):Play()
+                                
+                                local stroke = child:FindFirstChildOfClass("UIStroke")
+                                if stroke then
+                                    TweenService:Create(
+                                        stroke,
+                                        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                                        {Transparency = 1}
+                                    ):Play()
+                                end
+                            end
+                        end
+                        
+                        task.wait(0.25)
+                        
+                        local checkmarkContainer = Instance.new("Frame")
+                        checkmarkContainer.Name = "CheckmarkContainer"
+                        checkmarkContainer.BackgroundTransparency = 1
+                        checkmarkContainer.Size = UDim2.new(1, 0, 1, 0)
+                        checkmarkContainer.Position = UDim2.new(0, 0, 0, 0)
+                        checkmarkContainer.Parent = mainContainer
+                        
+                        local successCircle = Instance.new("Frame")
+                        successCircle.Name = "SuccessCircle"
+                        successCircle.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
+                        successCircle.BackgroundTransparency = 1
+                        successCircle.Size = UDim2.new(0, 80, 0, 80)
+                        successCircle.Position = UDim2.new(0.5, 0, 0, 20)
+                        successCircle.AnchorPoint = Vector2.new(0.5, 0)
+                        successCircle.Parent = checkmarkContainer
+                        
+                        local successCorner = Instance.new("UICorner")
+                        successCorner.CornerRadius = UDim.new(1, 0)
+                        successCorner.Parent = successCircle
+                        
+                        local glowRing = Instance.new("Frame")
+                        glowRing.Name = "GlowRing"
+                        glowRing.BackgroundTransparency = 1
+                        glowRing.Size = UDim2.new(1, 16, 1, 16)
+                        glowRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+                        glowRing.AnchorPoint = Vector2.new(0.5, 0.5)
+                        glowRing.Parent = successCircle
+                        
+                        local glowStroke = Instance.new("UIStroke")
+                        glowStroke.Color = Color3.fromRGB(34, 197, 94)
+                        glowStroke.Thickness = 3
+                        glowStroke.Transparency = 1
+                        glowStroke.Parent = glowRing
+                        
+                        local glowCorner = Instance.new("UICorner")
+                        glowCorner.CornerRadius = UDim.new(1, 0)
+                        glowCorner.Parent = glowRing
+                        
+                        local checkmark = Instance.new("TextLabel")
+                        checkmark.Name = "Checkmark"
+                        checkmark.BackgroundTransparency = 1
+                        checkmark.Size = UDim2.new(1, 0, 1, 0)
+                        checkmark.Position = UDim2.new(0, 0, 0, -4)
+                        checkmark.Font = Enum.Font.GothamBold
+                        checkmark.Text = "✓"
+                        checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        checkmark.TextSize = 0
+                        checkmark.TextTransparency = 1
+                        checkmark.Parent = successCircle
+                        
+                        TweenService:Create(
+                            successCircle,
+                            TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                            {BackgroundTransparency = 0.15, Size = UDim2.new(0, 90, 0, 90)}
+                        ):Play()
+                        
+                        task.wait(0.1)
+                        TweenService:Create(
+                            glowStroke,
+                            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {Transparency = 0.3}
+                        ):Play()
+                        
+                        TweenService:Create(
+                            glowRing,
+                            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {Size = UDim2.new(1, 24, 1, 24)}
+                        ):Play()
+                        
+                        task.wait(0.15)
+                        TweenService:Create(
+                            checkmark,
+                            TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                            {TextSize = 52, TextTransparency = 0}
+                        ):Play()
+                        
+                        task.wait(0.3)
+                        TweenService:Create(
+                            successCircle,
+                            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true),
+                            {Size = UDim2.new(0, 92, 0, 92)}
+                        ):Play()
+                    end
+                    
+                    if loadingText then
+                        task.wait(0.1)
+                        loadingText.Text = message or "Verified!"
+                        loadingText.TextColor3 = Color3.fromRGB(34, 197, 94)
+                        
+                        TweenService:Create(
+                            loadingText,
+                            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {TextSize = 18}
+                        ):Play()
+                    end
+                    
+                    if hintText then
+                        hintText.Text = "Starting script"
+                        hintText.TextColor3 = Color3.fromRGB(34, 197, 94)
+                    end
+                end
+                
+                task.wait(0.8)
+            end
+            
+            self.updateStatus = function(self, message, color, duration)
+                local statusText = self.elements.statusText
+                local statusBar = self.elements.statusBar
+                
+                if statusText then
+                    statusText.Text = message
+                    statusText.TextColor3 = color or Colors.textSecondary
+                    statusText.Visible = true
+                    
+                    if statusBar then
+                        TweenService:Create(statusBar, TweenInfo.new(0.2), {
+                            BackgroundColor3 = color or Colors.border,
+                            Size = UDim2.new(1, -40, 0, 3)
+                        }):Play()
+                    end
+                    
+                    if duration and duration > 0 then
+                        task.delay(duration, function()
+                            if statusText and statusText.Text == message then
+                                statusText.Visible = false
+                                if statusBar then
+                                    TweenService:Create(statusBar, TweenInfo.new(0.2), {
+                                        BackgroundColor3 = Colors.border,
+                                        Size = UDim2.new(1, -40, 0, 2)
+                                    }):Play()
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+            
+            self.setButtonLoading = function(self, button, text, loading)
+                if loading then
+                    local buttonText = button:FindFirstChild("ButtonText")
+                    if buttonText then
+                        buttonText.Text = text
+                    end
+                    button.Interactable = false
+                    
+                    local spinner = button:FindFirstChild("LoadingSpinner")
+                    if not spinner then
+                        spinner = Instance.new("Frame")
+                        spinner.Name = "LoadingSpinner"
+                        spinner.Size = UDim2.new(0, 14, 0, 14)
+                        spinner.Position = UDim2.new(0, 12, 0.5, -7)
+                        spinner.BackgroundColor3 = Colors.textPrimary
+                        spinner.BackgroundTransparency = 0.7
+                        spinner.BorderSizePixel = 0
+                        spinner.Parent = button
+                        
+                        local spinnerCorner = Instance.new("UICorner")
+                        spinnerCorner.CornerRadius = UDim.new(1, 0)
+                        spinnerCorner.Parent = spinner
+                        
+                        TweenService:Create(spinner, 
+                            TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), 
+                            {Rotation = 360}
+                        ):Play()
+                    end
+                else
+                    local buttonText = button:FindFirstChild("ButtonText")
+                    if buttonText then
+                        buttonText.Text = text
+                    end
+                    button.Interactable = true
+                    
+                    local spinner = button:FindFirstChild("LoadingSpinner")
+                    if spinner then spinner:Destroy() end
+                end
+            end
+            
+            self.shakeInput = function(self)
+                local frame = self.elements.inputFrame
+                if not frame then return end
+                
+                local orig = frame.Position
+                
+                for i = 1, 3 do
+                    TweenService:Create(frame, TweenInfo.new(0.05), {
+                        Position = UDim2.new(orig.X.Scale, orig.X.Offset - 8, orig.Y.Scale, orig.Y.Offset)
+                    }):Play()
+                    task.wait(0.05)
+                    TweenService:Create(frame, TweenInfo.new(0.05), {
+                        Position = UDim2.new(orig.X.Scale, orig.X.Offset + 8, orig.Y.Scale, orig.Y.Offset)
+                    }):Play()
+                    task.wait(0.05)
+                end
+                
+                frame.Position = orig
+            end
+            
+            self.animateSuccess = function(self)
+                local iconFrame = self.elements.iconFrame
+                if iconFrame then
+                    TweenService:Create(iconFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+                        Size = UDim2.new(0, 62, 0, 62),
+                        Position = UDim2.new(0.5, -31, 0, -5)
+                    }):Play()
+                    
+                    task.wait(0.2)
+                    
+                    TweenService:Create(iconFrame, TweenInfo.new(0.2), {
+                        Size = UDim2.new(0, 52, 0, 52),
+                        Position = UDim2.new(0.5, -26, 0, 0)
+                    }):Play()
+                end
+            end
+            
+            self.close = function(self)
+                if not self.gui then return end
+                getgenv().UI_CLOSED = true
+                local container = self.elements.container
+                local backdrop = self.elements.backdrop
+                local blur = Lighting:FindFirstChild("JunkieUIBlur")
+                
+                TweenService:Create(container, TweenInfo.new(0.2), {
+                    BackgroundTransparency = 1
+                }):Play()
+                
+                TweenService:Create(backdrop, TweenInfo.new(0.2), {
+                    BackgroundTransparency = 1
+                }):Play()
+                
+                task.wait(0.2)
+                
+                if blur then blur:Destroy() end
+                self.gui:Destroy()
+                self.gui = nil
+            end
+            
+            self.setLoadingState = function(self, isLoading, message)
+                if not self.elements then return end
+                
+                local container = self.elements.container
+                local inputFrame = self.elements.inputFrame
+                local verifyButton = self.elements.verifyButton
+                local getLinkButton = self.elements.getLinkButton
+                local iconFrame = self.elements.iconFrame
+                local title = self.elements.title
+                local subtitle = self.elements.subtitle
+                local statusLabel = self.elements.statusLabel
+                
+                if isLoading then
+                    if inputFrame then inputFrame.Visible = false end
+                    if verifyButton then verifyButton.Visible = false end
+                    if getLinkButton then getLinkButton.Visible = false end
+                    if iconFrame then iconFrame.Visible = false end
+                    if title then title.Visible = false end
+                    if subtitle then subtitle.Visible = false end
+                    if statusLabel then statusLabel.Visible = false end
+                    
+                    local loadingOverlay = container:FindFirstChild("LoadingOverlay")
+                    if not loadingOverlay then
+                        loadingOverlay = Instance.new("Frame")
+                        loadingOverlay.Name = "LoadingOverlay"
+                        loadingOverlay.BackgroundTransparency = 1
+                        loadingOverlay.Size = UDim2.new(1, 0, 1, 0)
+                        loadingOverlay.Position = UDim2.new(0, 0, 0, 0)
+                        loadingOverlay.ZIndex = 100
+                        loadingOverlay.Parent = container
+                        
+                        local mainContainer = Instance.new("CanvasGroup")
+                        mainContainer.Name = "MainContainer"
+                        mainContainer.BackgroundTransparency = 1
+                        mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+                        mainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+                        mainContainer.Size = UDim2.new(0, 280, 0, 200)
+                        mainContainer.Parent = loadingOverlay
+                        
+                        local spinnerContainer = Instance.new("Frame")
+                        spinnerContainer.Name = "SpinnerContainer"
+                        spinnerContainer.BackgroundTransparency = 1
+                        spinnerContainer.AnchorPoint = Vector2.new(0.5, 0)
+                        spinnerContainer.Position = UDim2.new(0.5, 0, 0, 20)
+                        spinnerContainer.Size = UDim2.new(0, 80, 0, 80)
+                        spinnerContainer.Parent = mainContainer
+                        
+                        local bgCircle = Instance.new("Frame")
+                        bgCircle.Name = "BgCircle"
+                        bgCircle.BackgroundTransparency = 1
+                        bgCircle.Size = UDim2.new(1, 0, 1, 0)
+                        bgCircle.ZIndex = 2
+                        bgCircle.Parent = spinnerContainer
+                        
+                        local bgStroke = Instance.new("UIStroke")
+                        bgStroke.Color = Colors.accent
+                        bgStroke.Thickness = 4
+                        bgStroke.Transparency = 0.85
+                        bgStroke.Parent = bgCircle
+                        
+                        local bgCorner = Instance.new("UICorner")
+                        bgCorner.CornerRadius = UDim.new(1, 0)
+                        bgCorner.Parent = bgCircle
+                        
+                        local arcCircle = Instance.new("Frame")
+                        arcCircle.Name = "ArcCircle"
+                        arcCircle.BackgroundTransparency = 1
+                        arcCircle.Size = UDim2.new(1, 0, 1, 0)
+                        arcCircle.ZIndex = 3
+                        arcCircle.Parent = spinnerContainer
+                        
+                        local arcStroke = Instance.new("UIStroke")
+                        arcStroke.Color = Colors.accent
+                        arcStroke.Thickness = 4
+                        arcStroke.Transparency = 0
+                        arcStroke.Parent = arcCircle
+                        
+                        local arcCorner = Instance.new("UICorner")
+                        arcCorner.CornerRadius = UDim.new(1, 0)
+                        arcCorner.Parent = arcCircle
+                        
+                        local arcGradient = Instance.new("UIGradient")
+                        arcGradient.Transparency = NumberSequence.new({
+                            NumberSequenceKeypoint.new(0, 0),
+                            NumberSequenceKeypoint.new(0.4, 0),
+                            NumberSequenceKeypoint.new(0.7, 0.3),
+                            NumberSequenceKeypoint.new(0.85, 0.7),
+                            NumberSequenceKeypoint.new(1, 1)
+                        })
+                        arcGradient.Rotation = 0
+                        arcGradient.Parent = arcStroke
+                        
+                        local spinTween = TweenService:Create(
+                            spinnerContainer,
+                            TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
+                            {Rotation = 360}
+                        )
+                        spinTween:Play()
+                        
+                        task.spawn(function()
+                            while loadingOverlay and loadingOverlay.Parent do
+                                arcGradient.Rotation = (arcGradient.Rotation + 8) % 360
+                                task.wait(0.03)
+                            end
+                        end)
+                        
+                        local loadingText = Instance.new("TextLabel")
+                        loadingText.Name = "LoadingText"
+                        loadingText.BackgroundTransparency = 1
+                        loadingText.AnchorPoint = Vector2.new(0.5, 0)
+                        loadingText.Position = UDim2.new(0.5, 0, 0, 130)
+                        loadingText.Size = UDim2.new(1, 0, 0, 25)
+                        loadingText.Font = Enum.Font.GothamBold
+                        loadingText.Text = message or "Loading information"
+                        loadingText.TextColor3 = Colors.textPrimary
+                        loadingText.TextSize = 16
+                        loadingText.Parent = mainContainer
+                        
+                        local hintText = Instance.new("TextLabel")
+                        hintText.Name = "HintText"
+                        hintText.BackgroundTransparency = 1
+                        hintText.AnchorPoint = Vector2.new(0.5, 0)
+                        hintText.Position = UDim2.new(0.5, 0, 0, 160)
+                        hintText.Size = UDim2.new(1, 0, 0, 20)
+                        hintText.Font = Enum.Font.Gotham
+                        hintText.Text = "Please wait a moment"
+                        hintText.TextColor3 = Colors.textSecondary
+                        hintText.TextSize = 12
+                        hintText.TextTransparency = 0.3
+                        hintText.Parent = mainContainer
+                        
+                        local textPulseTween = TweenService:Create(
+                            hintText,
+                            TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true),
+                            {TextTransparency = 0.6}
+                        )
+                        textPulseTween:Play()
+                        
+                        task.spawn(function()
+                            local dots = 0
+                            while loadingOverlay and loadingOverlay.Parent do
+                                dots = (dots % 3) + 1
+                                if loadingText and loadingText.Parent then
+                                    loadingText.Text = (message or "Loading information") .. string.rep(".", dots)
+                                end
+                                task.wait(0.5)
+                            end
+                        end)
+                        
+                        mainContainer.GroupTransparency = 1
+                        TweenService:Create(
+                            mainContainer,
+                            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {GroupTransparency = 0}
+                        ):Play()
+                    end
+                    
+                    loadingOverlay.Visible = true
+                else
+                    if inputFrame then inputFrame.Visible = true end
+                    if verifyButton then verifyButton.Visible = true end
+                    if getLinkButton then getLinkButton.Visible = true end
+                    if iconFrame then iconFrame.Visible = true end
+                    if title then title.Visible = true end
+                    if subtitle then subtitle.Visible = true end
+                    if statusLabel then 
+                        statusLabel.Visible = true
+                        statusLabel.Text = "Enter your key to continue"
+                        statusLabel.TextColor3 = Colors.textSecondary
+                    end
+                
+                    local loadingOverlay = container:FindFirstChild("LoadingOverlay")
+                    if loadingOverlay then
+                        loadingOverlay:Destroy()
+                    end
+                end
+            end
+            
             setupAnimations()
+            animateEntrance()
+    
+            self.createToast = function(message, duration, toastType)
+                duration = duration or 3
+                toastType = toastType or "info" -- "info", "success", "loading"
+                
+                local toast = Instance.new("Frame")
+                toast.Name = "Toast"
+                toast.Size = UDim2.new(0, 0, 0, 50)
+                toast.Position = UDim2.new(1, -20, 1, -20)
+                toast.AnchorPoint = Vector2.new(1, 1)
+                toast.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+                toast.BorderSizePixel = 0
+                toast.ZIndex = 10000
+                toast.Parent = self.gui
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 10)
+                corner.Parent = toast
+                
+                local shadow = Instance.new("ImageLabel")
+                shadow.Name = "Shadow"
+                shadow.BackgroundTransparency = 1
+                shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+                shadow.Size = UDim2.new(1, 30, 1, 30)
+                shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+                shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+                shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+                shadow.ImageTransparency = 0.7
+                shadow.ScaleType = Enum.ScaleType.Slice
+                shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+                shadow.ZIndex = toast.ZIndex - 1
+                shadow.Parent = toast
+                
+                local icon = Instance.new("TextLabel")
+                icon.Name = "Icon"
+                icon.Size = UDim2.new(0, 40, 1, 0)
+                icon.Position = UDim2.new(0, 0, 0, 0)
+                icon.BackgroundTransparency = 1
+                icon.Font = Enum.Font.SourceSansBold
+                icon.TextSize = 20
+                icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+                icon.ZIndex = toast.ZIndex + 1
+                
+                if toastType == "loading" then
+                    icon.Text = "⏳"
+                elseif toastType == "success" then
+                    icon.Text = "✓"
+                    icon.TextColor3 = Color3.fromRGB(76, 175, 80)
+                else
+                    icon.Text = "ℹ️"
+                    icon.TextColor3 = Color3.fromRGB(66, 165, 245)
+                end
+                icon.Parent = toast
+                
+                local text = Instance.new("TextLabel")
+                text.Name = "Text"
+                text.Size = UDim2.new(1, -50, 1, 0)
+                text.Position = UDim2.new(0, 40, 0, 0)
+                text.BackgroundTransparency = 1
+                text.Font = Enum.Font.GothamMedium
+                text.TextSize = 14
+                text.TextColor3 = Color3.fromRGB(230, 230, 230)
+                text.Text = message
+                text.TextXAlignment = Enum.TextXAlignment.Left
+                text.TextYAlignment = Enum.TextYAlignment.Center
+                text.TextTruncate = Enum.TextTruncate.AtEnd
+                text.ZIndex = toast.ZIndex + 1
+                text.Parent = toast
+                
+                local textService = game:GetService("TextService")
+                local textBounds = textService:GetTextSize(
+                    message,
+                    text.TextSize,
+                    text.Font,
+                    Vector2.new(300, 50)
+                )
+                local targetWidth = math.min(math.max(textBounds.X + 60, 200), 350)
+                
+                local slideTween = TweenService:Create(
+                    toast,
+                    TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                    {
+                        Size = UDim2.new(0, targetWidth, 0, 50),
+                        Position = UDim2.new(1, -20, 1, -20)
+                    }
+                )
+                slideTween:Play()
+                
+                if toastType == "loading" then
+                    task.spawn(function()
+                        local rotation = 0
+                        while toast and toast.Parent do
+                            rotation = (rotation + 10) % 360
+                            local spinChars = {"⏳", "⌛"}
+                            icon.Text = spinChars[(math.floor(rotation / 180) % 2) + 1]
+                            task.wait(0.1)
+                        end
+                    end)
+                end
+                
+                if toastType ~= "loading" then
+                    task.delay(duration, function()
+                        if toast and toast.Parent then
+
+                            local fadeOut = TweenService:Create(
+                                toast,
+                                TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                                {
+                                    Position = UDim2.new(1, 20, 1, -20),
+                                    BackgroundTransparency = 1
+                                }
+                            )
+                            
+                            TweenService:Create(icon, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+                            TweenService:Create(text, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+                            TweenService:Create(shadow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+                            
+                            fadeOut:Play()
+                            fadeOut.Completed:Connect(function()
+                                toast:Destroy()
+                            end)
+                        end
+                    end)
+                end
+                
+                return toast
+            end
+            
+            return self.gui
         end
-    end)()
+        end 
+    end 
+    
+    local UI = {}
+    UI.__index = UI
+    
+    function UI.new(options)
+        local self = setmetatable({}, UI)
+        
+        self.options = options or {}
+        self.title = self.options.title or "Key Verification System"
+        self.subtitle = self.options.subtitle or "Powered by Junkie Development"
+        self.description = self.options.description or "Please complete the key verification to continue"
+        
+        self.lastRequestTime = 0
+        self.requestCooldown = 15
+        self.maxAttempts = 5
+        self.currentAttempts = 0
+        
+        self.player = Players.LocalPlayer
+        self.gui = nil
+        self.hwid = game:GetService("RbxAnalyticsService"):GetClientId()
+        
+        self._connections = {}
+        
+        return self
+    end
+    
+    UI.createUI = function(self)
+        local UIFactory = loadUIFactory()
+        
+        if UIFactory then
+            local uiBuilder = UIFactory(Colors, Players, TweenService, UserInputService, Lighting)
+            if uiBuilder then
+                uiBuilder(self)
+            else
+                error("UI builder initialization failed")
+                return
+            end
+        else
+            error("Failed to load UI factory")
+            return
+        end
+        
+        if self.elements and self.elements.closeButton then
+            table.insert(self._connections, self.elements.closeButton.MouseButton1Click:Connect(function()
+                self:close()
+            end))
+        end
+        
+        if self.elements and self.elements.getLinkButton then
+            table.insert(self._connections, self.elements.getLinkButton.MouseButton1Click:Connect(function()
+                self:handleGetLink()
+            end))
+        end
+        
+        if self.elements and self.elements.verifyButton then
+            table.insert(self._connections, self.elements.verifyButton.MouseButton1Click:Connect(function()
+                self:handleVerifyKey()
+            end))
+        end
+        
+        if self.elements and self.elements.keyInput then
+            table.insert(self._connections, self.elements.keyInput.FocusLost:Connect(function(enterPressed)
+                if enterPressed then
+                    self:handleVerifyKey()
+                end
+            end))
+        end
+        
+        return self.gui
+    end
+    
+    function UI:close()
+        getgenv().UI_CLOSED = true
+        for _, conn in ipairs(self._connections or {}) do
+            pcall(function() conn:Disconnect() end)
+        end
+        self._connections = {}
+        if self.gui then self.gui:Destroy() end
+        return getgenv().SCRIPT_KEY
+    end
+    
+    function UI:handleGetLink()
+        local secureGetKeyLink = Junkie.get_key_link()
+        if not secureGetKeyLink then
+            self:updateStatus("System not initialized", Colors.error, 3)
+            return
+        end
+        local link = secureGetKeyLink
+        
+        if link then
+            if setclipboard then
+                setclipboard(link)
+                self:updateStatus("Link copied to clipboard!", Colors.success, 3)
+            else
+                self:updateStatus("Get link: " .. link, Colors.primary, 10)
+            end
+        else
+            self:updateStatus("Failed to get link", Colors.error, 3)
+        end
+    end
+    
+    function UI:handleVerifyKey()
+        local key = self.elements.keyInput.Text:gsub("%s+", "")
+        
+        if key == "" then
+            self:updateStatus("Please enter a key", Colors.error, 3)
+            self:shakeInput()
+            return
+        end
+        
+        if self.setButtonLoading then
+            self:setButtonLoading(self.elements.verifyButton, "Verifying", true)
+        end
+        self:updateStatus("Verifying...", Colors.primary, 0)
+        
+        if self.elements.keyInput.Interactable ~= nil then
+            self.elements.keyInput.Interactable = false
+        end
+        
+        local result = Junkie.check_key(key)
+        
+        if result and result.valid then
+            saveVerifiedKey(key)
+            self:updateStatus("Key verified!", Colors.success, 0)
+            if self.animateSuccess then self:animateSuccess() end
+            
+            task.wait(1.5)
+            getgenv().SCRIPT_KEY = key
+            self:close()
+            return 
+        else
+            self:updateStatus("Invalid key", Colors.error, 3)
+            if self.shakeInput then self:shakeInput() end
+            
+            if self.setButtonLoading then
+                self:setButtonLoading(self.elements.verifyButton, "Verify Key", false)
+            end
+            if self.elements.keyInput.Interactable ~= nil then
+                self.elements.keyInput.Interactable = true
+            end
+        
+        end
+    end
+
+    local ui = UI.new(options)
+    ui:createUI()
+
+    if ui.setLoadingState then
+        ui:setLoadingState(true, "Checking verification...")
+    end
+
+    local savedKey = loadVerifiedKey()
+    local keyToCheck = savedKey
+    if not keyToCheck then
+        keyToCheck = getgenv().SCRIPT_KEY
+    end
+    
+local result = Junkie.check_key(keyToCheck)
+    if result and result.valid then
+        if result.message == "KEYLESS" then
+            if ui.showSuccess then
+                ui:showSuccess("Keyless Mode ✓")
+            end
+            getgenv().SCRIPT_KEY = "KEYLESS"
+            if ui.close then ui:close() end
+            
+            -- Triggers the game check and optional kick
+            task.spawn(loadGameScript)
+            return
+        end
+        
+        if result.message == "KEY_VALID" then
+            if not savedKey and keyToCheck then
+                saveVerifiedKey(keyToCheck)
+            end
+            
+            if ui.showSuccess then
+                local successMsg = savedKey and "Saved Key Verified ✓" or "Key Verified ✓"
+                ui:showSuccess(successMsg)
+            end
+            getgenv().SCRIPT_KEY = keyToCheck
+            if ui.close then ui:close() end
+            
+            -- Triggers the game check and optional kick
+            task.spawn(loadGameScript)
+            return
+        end
+        
+        if savedKey and not result.key_valid then
+            clearSavedKey()
+        end
+    end
+    
+    if ui.setLoadingState then
+        ui:setLoadingState(false)
+    end
+
+    while not getgenv().UI_CLOSED do
+        task.wait(0.1)
+    end
+    return getgenv().SCRIPT_KEY
 end)()
 
--- Immediate Dynamic Loader targeting your assigned game database configuration profile
-local gameScriptUrl = GamesDatabase[currentPlaceId]
-local successLoad, scriptContent = pcall(game.HttpGet, game, gameScriptUrl)
 
-if successLoad and scriptContent then
-    local loadedFunction, err = loadstring(scriptContent)
-    if loadedFunction then
-        loadedFunction()
-    else
-        warn("Structure failure compilation target: " .. tostring(err))
-    end
-else
-    warn("Failed to contact GitHub storage network engine.")
-end
