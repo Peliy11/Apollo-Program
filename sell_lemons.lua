@@ -180,7 +180,7 @@ local Window = Luna:CreateWindow({
         ConfigFolder = "AP Hub" 
     },
 
-    KeySystem = true, 
+    KeySystem = false, 
     KeySettings = {
         Title = "Apollo key system",
         Subtitle = "Key System",
