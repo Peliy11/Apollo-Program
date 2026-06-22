@@ -169,7 +169,7 @@ end
 -- ==========================================
 local Window = Luna:CreateWindow({
     Name = "Apollo Program", 
-    Subtitle = "Discord.gg/balls", 
+    Subtitle = "https://discord.gg/U8X5U24u34", 
     LogoID = "82795327169782", 
     LoadingEnabled = true, 
     LoadingTitle = "Apollo Program Loading", 
@@ -180,7 +180,7 @@ local Window = Luna:CreateWindow({
         ConfigFolder = "AP Hub" 
     },
 
-    KeySystem = false, 
+    KeySystem = true, 
     KeySettings = {
         Title = "Apollo key system",
         Subtitle = "Key System",
@@ -197,8 +197,13 @@ local Window = Luna:CreateWindow({
 })
 
 Window:CreateHomeTab({
-    SupportedExecutors = {"Volt"},
-    DiscordInvite = "1234", 
+    SupportedExecutors = {
+    "Volt",
+    "Delta",
+    "Xeno",
+    "Velocity",
+},
+    DiscordInvite = "U8X5U24u34", 
     Icon = 1
 })
 
