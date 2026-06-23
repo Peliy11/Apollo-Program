@@ -1515,28 +1515,39 @@ local result = (function()
             self.elements.keyInput.Interactable = false
         end
         
-        local result = Junkie.check_key(key)
-        
-        if result and result.valid then
-            saveVerifiedKey(key)
-            self:updateStatus("Key verified!", Colors.success, 0)
-            if self.animateSuccess then self:animateSuccess() end
-            
-            task.wait(1.5)
-            getgenv().SCRIPT_KEY = key
-            self:close()
-            return 
-        else
-            self:updateStatus("Invalid key", Colors.error, 3)
-            if self.shakeInput then self:shakeInput() end
-            
-            if self.setButtonLoading then
-                self:setButtonLoading(self.elements.verifyButton, "Verify Key", false)
+        local result = Junkie.check_key(keyToCheck)
+    
+    -- Safe check: Ensure result is a table before trying to read properties from it
+    if typeof(result) == "table" and result.valid then
+        if result.message == "KEYLESS" then
+            if ui.showSuccess then
+                ui:showSuccess("Keyless Mode ✓")
             end
-            if self.elements.keyInput.Interactable ~= nil then
-                self.elements.keyInput.Interactable = true
-            end
+            getgenv().SCRIPT_KEY = "KEYLESS"
+            if ui.close then ui:close() end
+            
+            task.spawn(loadGameScript)
+            return
+        end
         
+        if result.message == "KEY_VALID" then
+            if not savedKey and keyToCheck then
+                saveVerifiedKey(keyToCheck)
+            end
+            
+            if ui.showSuccess then
+                local successMsg = savedKey and "Saved Key Verified ✓" or "Key Verified ✓"
+                ui:showSuccess(successMsg)
+            end
+            getgenv().SCRIPT_KEY = keyToCheck
+            if ui.close then ui:close() end
+            
+            task.spawn(loadGameScript)
+            return
+        end
+        
+        if savedKey and not result.key_valid then
+            clearSavedKey()
         end
     end
 
